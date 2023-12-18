@@ -7,4 +7,4 @@ Adaptation microservice / docker par Loic HARRANG
 
 docker build -f dockerfiles/dockerfile-NOM.dockerfile -t NOM .
 
-docker run -d --network network_etape_X --name NOM {-p 80:80 SEULEMENT POUR SITE} NOM
+docker run -d --network network_etape_X --name NOM {-p 80:80 SEULEMENT POUR SITE/API} NOM

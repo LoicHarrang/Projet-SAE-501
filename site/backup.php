@@ -1,37 +1,9 @@
 <?php
 include('includes/header.php');
 
-// Fonction pour se connecter à l'API en utilisant cURL avec JSON
-function connexionAPI($login, $password)
-{
-    $url = "http://192.168.197.128:8080/check_account";
-    $data = array('username' => $login, 'password' => $password);
+// Utiliser un captcha
+// Vérifier que le nom de l'image respecte le bon format xxx.yyy, ptet le yyy dans png ou jpg ou jpeg
 
-    // Encodage des données en JSON
-    $json_data = json_encode($data);
-
-    $ch = curl_init($url);
-    
-    // Configuration de cURL
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $json_data);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-
-    // Exécution de la requête cURL
-    $result = curl_exec($ch);
-
-    if ($result === FALSE) {
-        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
-    }
-
-    // Fermeture de la session cURL
-    curl_close($ch);
-
-    $json_result = json_decode($result, true);
-
-    return $json_result;
-}
 
 ?>
 
@@ -61,11 +33,8 @@ function connexionAPI($login, $password)
                 && isset($_POST["login"])
                 && isset($_POST["password"])
             ) {
-                $etatConnexion = connexionAPI($_POST["login"], $_POST["password"]);
-                if (isset($etatConnexion['status']) && $etatConnexion['status'] === 'success') {
-                    $_SESSION["login"] = $etatConnexion["user"]["login"];
-                    $_SESSION["statut"] = $etatConnexion["user"]["statut"];
-
+                $etatConnexion = connexion($_POST["login"], $_POST["password"]);
+                if ($etatConnexion) {
                     echo '<p id="connexionOk">' . "\n";
                     echo "Connexion réussie <br />\n";
                     echo "Redirection...<br />\n";

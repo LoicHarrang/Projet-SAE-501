@@ -1,0 +1,29 @@
+services:
+  site:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/dockerfile-site.dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./site:/var/www/html
+  api_auth:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/dockerfile-api-auth.dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api/data:/code/app
+  psql:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/dockerfile-psql.dockerfile
+    ports:
+      - "5432:5432"
+  mariadb:
+    build:
+      context: ./
+      dockerfile: ./dockerfiles/dockerfile-mariadb.dockerfile
+    ports:
+      - "3306:3306"
