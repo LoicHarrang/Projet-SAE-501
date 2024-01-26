@@ -106,13 +106,13 @@ function afficheFormulaireInsertion()
                 <?php
                 foreach ($fournisseurs as $fournisseur) {
                     if (isset($_POST['fournisseur'])) {
-                        if ($fournisseur["NomFournisseur"] == $_POST['fournisseur']) {
-                            echo '<option value="' . $fournisseur["NomFournisseur"] . '" selected>' . $fournisseur["NomFournisseur"] . '</option>';
+                        if ($fournisseur["nomfournisseur"] == $_POST['fournisseur']) {
+                            echo '<option value="' . $fournisseur["nomfournisseur"] . '" selected>' . $fournisseur["nomfournisseur"] . '</option>';
                         } else {
-                            echo '<option value="' . $fournisseur["NomFournisseur"] . '">' . $fournisseur["NomFournisseur"] . '</option>';
+                            echo '<option value="' . $fournisseur["nomfournisseur"] . '">' . $fournisseur["nomfournisseur"] . '</option>';
                         }
                     } else {
-                        echo '<option value="' . $fournisseur["NomFournisseur"] . '">' . $fournisseur["NomFournisseur"] . '</option>';
+                        echo '<option value="' . $fournisseur["nomfournisseur"] . '">' . $fournisseur["nomfournisseur"] . '</option>';
                     }
                 }
                 ?>
@@ -152,10 +152,10 @@ function afficheFormulaireIdMateriel()
             <select id="id_mat" name="id_mat" size="1">
                 <?php
                 foreach ($tab as $id) {
-                    if (isset($selection) && $id["NoMateriel"] == $selection) {
-                        echo '<option value="' . $id["NoMateriel"] . '" selected >' . $id["NoMateriel"] . '</option>';
+                    if (isset($selection) && $id["nomateriel"] == $selection) {
+                        echo '<option value="' . $id["nomateriel"] . '" selected >' . $id["nomateriel"] . '</option>';
                     } else {
-                        echo '<option value="' . $id["NoMateriel"] . '">' . $id["NoMateriel"] . '</option>';
+                        echo '<option value="' . $id["nomateriel"] . '">' . $id["nomateriel"] . '</option>';
                     }
                 }
                 ?>
@@ -199,20 +199,20 @@ function afficheFormulaireModification($id)
             <select id="id_fournisseur" name="fournisseur" size="1">
                 <?php
                 foreach ($fournisseurs as $fournisseur) {
-                    if ($fournisseur["NomFournisseur"] == $materiel["NomFournisseur"]) {
-                        echo '<option value="' . $fournisseur["NomFournisseur"] . '" selected>' . $fournisseur["NomFournisseur"] . '</option>';
+                    if ($fournisseur["nomfournisseur"] == $materiel["nomfournisseur"]) {
+                        echo '<option value="' . $fournisseur["nomfournisseur"] . '" selected>' . $fournisseur["nomfournisseur"] . '</option>';
                     } else {
-                        echo '<option value="' . $fournisseur["NomFournisseur"] . '">' . $fournisseur["NomFournisseur"] . '</option>';
+                        echo '<option value="' . $fournisseur["nomfournisseur"] . '">' . $fournisseur["nomfournisseur"] . '</option>';
                     }
                 }
                 ?>
             </select> <br />
 
             <label for="id_marque">Marque : </label>
-            <input type="text" name="marque" id="id_marque" required size="6" value="<?= $materiel["Marque"]; ?>" /><br />
+            <input type="text" name="marque" id="id_marque" required size="6" value="<?= $materiel["marque"]; ?>" /><br />
 
             <label for="id_description">Description : </label>
-            <input type="text" name="description" id="id_description" required size="10" value="<?= $materiel["Description"]; ?>" /><br />
+            <input type="text" name="description" id="id_description" required size="10" value="<?= $materiel["description"]; ?>" /><br />
 
             <label for="id_prix">Prix (en €):</label>
             <input id="id_prix" name="prix" type="number" min="1" step="any" required value="<?= $materiel['Prix']; ?>" /><br />
