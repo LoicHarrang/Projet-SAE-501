@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+
+from datetime import datetime, timedelta
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Depends, status, Query
 from fastapi.security import OAuth2PasswordBearer
 import mysql.connector
 from pydantic import BaseModel
@@ -7,16 +10,6 @@ from psycopg2.extras import RealDictCursor
 
 
 app = FastAPI()
-
-# Configuration de la connexion à la base de données MySQL
-def get_db_conn_mysql():
-    conn = mysql.connector.connect(
-        user="loic",
-        password="123456789",
-        database="site",
-        host="mariadb",
-    )
-    return conn
 
 def get_db_conn_psql():
     conn = psycopg2.connect(
@@ -29,21 +22,12 @@ def get_db_conn_psql():
     return conn
 
 def getIdFournisseur(fournisseur_nom: str, db_conn):
-    with db_conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute("SELECT NoFournisseur FROM Fournisseur WHERE NomFournisseur = %s", (fournisseur_nom,))
+    with db_conn.cursor() as cursor:
+        cursor.execute("SELECT nofournisseur FROM Fournisseur WHERE nomfournisseur = %s", (fournisseur_nom,))
         result = cursor.fetchone()
-        return result['NoFournisseur'] if result else None
+        # Assurez-vous que la clé utilisée ici correspond à celle de votre table dans la base de données
+        return result['nofournisseur'] if result else None
 
-
-# Modèle Pydantic pour la création et la mise à jour d'un compte
-class CompteCreate(BaseModel):
-    login: str
-    password: str
-    statut: str
-
-class CompteUpdate(BaseModel):
-    password: str
-    statut: str
     
 class Materiel(BaseModel):
     type: str
@@ -74,21 +58,6 @@ async def check_existence(marque: str, fournisseur: str, description: str, db_co
         """, (marque, description, fournisseur))
         produit = cursor.fetchone()
         return {"status": "success", "exists": bool(produit)}
-    finally:
-        cursor.close()
-        
-# Opération CRUD : Lire un compte par login
-@app.get("/comptes/{login}", response_model=dict)
-async def read_compte(login: str, db_conn: mysql.connector.connection.MySQLConnection = Depends(get_db_conn_mysql)):
-    cursor = db_conn.cursor(dictionary=True)
-    try:
-        query = "SELECT login, password, statut FROM comptes WHERE login = %s"
-        cursor.execute(query, (login,))
-        compte = cursor.fetchone()
-        if compte:
-            return {"status": "success", "compte": compte}
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Compte introuvable")
     finally:
         cursor.close()
 
@@ -134,16 +103,22 @@ async def get_id_fournisseur(nom_fournisseur: str, db_conn=Depends(get_db_conn_p
     finally:
         cursor.close()
         
-@app.get("/materiels/{description}")
-async def get_id_materiel(description: str, db_conn=Depends(get_db_conn_psql)):
+@app.get("/materiels/query")
+async def query_materiels(description: Optional[str] = Query(None), db_conn=Depends(get_db_conn_psql)):
+    # Vérifier si une description a été fournie
+    if description is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La description est requise pour cette requête.")
+
     cursor = db_conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cursor.execute("SELECT NoMateriel FROM Materiel WHERE Description = %s", (description,))
-        materiel = cursor.fetchone()
-        if materiel:
-            return {"status": "success", "id": materiel["NoMateriel"]}
-        else:
-            raise HTTPException(status_code=404, detail="Matériel introuvable")
+        query = "SELECT NoMateriel FROM Materiel WHERE Description = %s"
+        cursor.execute(query, (description,))  # Notez l'utilisation d'une virgule pour créer un tuple avec un seul élément
+        materiels = cursor.fetchall()
+
+        if not materiels:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aucun matériel trouvé avec cette description.")
+
+        return {"status": "success", "materiels": materiels}
     finally:
         cursor.close()
 
@@ -174,28 +149,6 @@ async def get_produits_par_type(type_mat: str, db_conn=Depends(get_db_conn_psql)
     finally:
         cursor.close()
         
-# Route pour vérifier l'existence d'un compte avec des données JSON
-@app.post("/check_account")
-async def check_account(data: dict, db_conn: mysql.connector.connection.MySQLConnection = Depends(get_db_conn_mysql)):
-    username = data.get('username')
-    password = data.get('password')
-
-    if not username or not password:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nom d'utilisateur et mot de passe requis")
-
-    cursor = db_conn.cursor(dictionary=True)
-    try:
-        query = "SELECT login, password, statut FROM comptes WHERE login = %s AND password = %s"
-        cursor.execute(query, (username, password))
-        user = cursor.fetchone()
-
-        if user:
-            return {"status": "success", "message": "Compte existant", "user": user}
-        else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Compte introuvable")
-    finally:
-        cursor.close()
-
 # Route pour insérer un nouveau matériel
 @app.post("/materiels")
 async def ajouter_materiel(materiel: Materiel, db_conn=Depends(get_db_conn_psql)):
@@ -217,76 +170,34 @@ async def ajouter_materiel(materiel: Materiel, db_conn=Depends(get_db_conn_psql)
     finally:
         cursor.close()
 
-# Opération CRUD : Créer un compte
-@app.post("/comptes/", response_model=dict)
-async def create_compte(compte: CompteCreate, db_conn: mysql.connector.connection.MySQLConnection = Depends(get_db_conn_mysql)):
-    cursor = db_conn.cursor(dictionary=True)
-    try:
-        query = "INSERT INTO comptes (login, password, statut) VALUES (%s, %s, %s)"
-        cursor.execute(query, (compte.login, compte.password, compte.statut))
-        db_conn.commit()
-        return {"status": "success", "message": "Compte créé avec succès", "compte": compte.dict()}
-    except mysql.connector.Error as e:
-        return {"status": "error", "message": f"Erreur lors de la création du compte : {e}"}
-    finally:
-        cursor.close()
-
-# Opération CRUD : Mettre à jour un compte par login
-@app.put("/comptes/{login}", response_model=dict)
-async def update_compte(login: str, compte_update: CompteUpdate, db_conn: mysql.connector.connection.MySQLConnection = Depends(get_db_conn_mysql)):
-    cursor = db_conn.cursor(dictionary=True)
-    try:
-        query = "UPDATE comptes SET password = %s, statut = %s WHERE login = %s"
-        cursor.execute(query, (compte_update.password, compte_update.statut, login))
-        db_conn.commit()
-        return {"status": "success", "message": "Compte mis à jour avec succès"}
-    except mysql.connector.Error as e:
-        return {"status": "error", "message": f"Erreur lors de la mise à jour du compte : {e}"}
-    finally:
-        cursor.close()
-
 @app.put("/materiels/{id_materiel}")
 async def update_materiel(id_materiel: int, materiel: MaterielUpdate, db_conn=Depends(get_db_conn_psql)):
-    cursor = db_conn.cursor()
     try:
         # Mise à jour de la table Materiel
-        cursor.execute("""
-        UPDATE Materiel 
-        SET type_mat = %s, marque = %s, description = %s 
-        WHERE NoMateriel = %s
-        """, (materiel.type, materiel.marque, materiel.description, id_materiel))
+        with db_conn.cursor() as cursor:
+            cursor.execute("""
+            UPDATE Materiel 
+            SET type_mat = %s, marque = %s, description = %s 
+            WHERE NoMateriel = %s
+            """, (materiel.type, materiel.marque, materiel.description, id_materiel))
         
         # Mise à jour de la table Propose
-        id_fournisseur = getIdFournisseur(materiel.fournisseur, cursor)
-        cursor.execute("""
-        UPDATE Propose 
-        SET NoFournisseur = %s, Prix = %s
-        WHERE NoMateriel = %s
-        """, (id_fournisseur, materiel.prix, id_materiel))
+        id_fournisseur = getIdFournisseur(materiel.fournisseur, db_conn)  # Passez db_conn ici
+        with db_conn.cursor() as cursor:
+            cursor.execute("""
+            UPDATE Propose 
+            SET NoFournisseur = %s, Prix = %s
+            WHERE NoMateriel = %s
+            """, (id_fournisseur, materiel.prix, id_materiel))
 
         db_conn.commit()
         return {"status": "success", "message": "Matériel mis à jour avec succès"}
-    except mysql.connector.Error as e:
+    except psycopg2.Error as e:  # Utilisez psycopg2.Error ici au lieu de mysql.connector.Error
         db_conn.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Erreur lors de la mise à jour du matériel : {e}")
-    finally:
-        cursor.close()
 
-# Opération CRUD : Supprimer un compte par login
-@app.delete("/comptes/{login}", response_model=dict)
-async def delete_compte(login: str, db_conn: mysql.connector.connection.MySQLConnection = Depends(get_db_conn_mysql)):
-    cursor = db_conn.cursor(dictionary=True)
-    try:
-        query = "DELETE FROM comptes WHERE login = %s"
-        cursor.execute(query, (login,))
-        db_conn.commit()
-        return {"status": "success", "message": "Compte supprimé avec succès"}
-    except mysql.connector.Error as e:
-        return {"status": "error", "message": f"Erreur lors de la suppression du compte : {e}"}
-    finally:
-        cursor.close()
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run(app, host="127.0.0.1", port=8081)

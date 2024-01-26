@@ -71,6 +71,7 @@ function connexion($login, $pass)
         // Connexion réussie, création de la session
         $_SESSION["login"] = $etatConnexion["user"]["login"];
         $_SESSION["statut"] = $etatConnexion["user"]["statut"];
+        $_SESSION["jwt"] = $etatConnexion["access_token"];
         return true;
     } else {
         // Connexion échouée
@@ -147,7 +148,7 @@ function getStatut($login)
 function recupFournisseurAPI()
 {
     // URL de votre API pour récupérer la liste des fournisseurs
-    $url = "http://192.168.197.129:8080/fournisseurs";
+    $url = "http://192.168.197.129:8081/fournisseurs";
 
     // Initialisation de cURL
     $ch = curl_init($url);
@@ -227,7 +228,7 @@ function deniedAccess()
 function listeMaterielAPI()
 {
     // URL de votre API pour récupérer la liste du matériel
-    $url = "http://192.168.197.129:8080/materiels";
+    $url = "http://192.168.197.129:8081/materiels";
 
     // Initialisation de cURL
     $ch = curl_init($url);
@@ -304,7 +305,7 @@ function afficheTableau($tab)
 //*******************************Execution de l'insertion*************************************************
 function insertionAPI($type, $marque, $fournisseur, $description, $nom_image, $prix)
 {
-    $url = "http://192.168.197.129:8080/materiels";
+    $url = "http://192.168.197.129:8081/materiels";
 
     // Préparation des données à envoyer
     $data = array(
@@ -358,7 +359,7 @@ function insertion($type, $marque, $fournisseur, $description, $nom_image, $prix
 //*******************************Récupération de l'Id du fournisseur à partir du nom*************************************************
 function getIdFournisseurAPI($fournisseur)
 {
-    $url = "http://192.168.197.129:8080/fournisseurs/" . urlencode($fournisseur);
+    $url = "http://192.168.197.129:8081/fournisseurs/" . urlencode($fournisseur);
 
     // Initialisation de cURL
     $ch = curl_init($url);
@@ -399,7 +400,8 @@ function getIdFournisseur($fournisseur)
 //*******************************Récupération de l'id du matériel à partir de sa description*************************************************
 function getIdMaterielAPI($description)
 {
-    $url = "http://192.168.197.129:8080/materiels/" . urlencode($description);
+    // Mise à jour de l'URL pour utiliser la route /materiels/query avec un paramètre de requête pour la description
+    $url = "http://192.168.197.129:8081/materiels/query?" . http_build_query(['description' => $description]);
 
     // Initialisation de cURL
     $ch = curl_init($url);
@@ -420,8 +422,14 @@ function getIdMaterielAPI($description)
     // Décodage de la réponse JSON
     $json_result = json_decode($result, true);
 
-    return $json_result;
+    // Vérifiez si des matériels ont été trouvés et retournez le premier ID trouvé
+    if (!empty($json_result['materiels'])) {
+        return $json_result['materiels'][0]['Id']; // Supposant que 'Id' est la clé dans le JSON retourné
+    } else {
+        return null; // Aucun matériel trouvé pour cette description
+    }
 }
+
 
 function getIdMateriel($description)
 {
@@ -440,7 +448,7 @@ function getIdMateriel($description)
 //*******************************Récupération de tous les id du matériel*************************************************
 function listeIdMaterielAPI()
 {
-    $url = "http://192.168.197.129:8080/materiels/ids";
+    $url = "http://192.168.197.129:8081/materiels/ids";
 
     // Initialisation de cURL
     $ch = curl_init($url);
@@ -481,7 +489,7 @@ function listeIdMateriel()
 //*******************************Execution des modifications*************************************************
 function modificationAPI($type, $marque, $fournisseur, $description, $prix, $idMateriel)
 {
-    $url = "http://192.168.197.129:8080/materiels/" . $idMateriel;
+    $url = "http://192.168.197.129:8081/materiels/" . $idMateriel;
 
     // Préparation des données à envoyer
     $data = array(
@@ -534,7 +542,7 @@ function modification($type, $marque, $fournisseur, $description, $prix, $idMate
 //*******************************Filtrage des produits par type*************************************************
 function listerProduitParTypeAPI($type_mat)
 {
-    $url = "http://192.168.197.129:8080/materiels/type/" . urlencode($type_mat);
+    $url = "http://192.168.197.129:8081/materiels/type/" . urlencode($type_mat);
 
     // Initialisation de cURL
     $ch = curl_init($url);
@@ -575,7 +583,7 @@ function listerProduitParType($type_mat)
 //*******************************Vérifier l'unicité des tables*************************************************
 function alreadyExistAPI($marque, $fournisseur, $description)
 {
-    $url = "http://192.168.197.129:8080/materiels/exist?marque=" . urlencode($marque) . "&fournisseur=" . urlencode($fournisseur) . "&description=" . urlencode($description);
+    $url = "http://192.168.197.129:8081/materiels/exist?marque=" . urlencode($marque) . "&fournisseur=" . urlencode($fournisseur) . "&description=" . urlencode($description);
 
     // Initialisation de cURL
     $ch = curl_init($url);
