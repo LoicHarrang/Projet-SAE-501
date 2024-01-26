@@ -1,5 +1,6 @@
 <?php
 include('includes/header.php');
+require_once 'includes/fonctions.php';
 if ($_SESSION["statut"] != 'administrateur') {
     deniedAccess();
     sleep(5);

@@ -1,7 +1,7 @@
 <?php
 
-$fileName = explode("/", $_SERVER['SCRIPT_NAME']);
-$fileName = end($fileName);
+//$fileName = explode("/", $_SERVER['SCRIPT_NAME']);
+//$fileName = end($fileName);
 
 //##########################Fonctions utilisées###############################
 // Récupération du nom de fichier pour la génération du menu en dynamique
@@ -28,37 +28,54 @@ function afficheUtilisateur()
 }
 
 //****************Connexion de l'utilisateur**************************************
+function connexionAPI2($login, $password)
+{
+    // URL de l'API pour vérifier le compte
+    $url = "http://192.168.197.129:8080/check_account";
+    
+    // Préparation des données à envoyer en JSON
+    $data = array('username' => $login, 'password' => $password);
+    $json_data = json_encode($data);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+    
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $json_data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function connexion($login, $pass)
 {
-	$retour = false;
+    // Appel à la fonction connexionAPI
+    $etatConnexion = connexionAPI2($login, $pass);
 
-	include('connexionBDDAuth.php');
-
-	// On protège les entrées utilisateur
-	$login = $BDDAuth->quote($login);
-	$pass = $BDDAuth->quote($pass);
-	// On pourrait utiliser un lower() pour faciliter la connexion
-	$requete = "SELECT login,password,statut FROM comptes WHERE login = $login AND password = $pass ;";
-	// var_dump($requete);
-	// echo "<br/>";  	
-	$resultat = $BDDAuth->query($requete);
-	$resRequete = $resultat->fetch(PDO::FETCH_ASSOC);
-	// Si le tableau est vide alors c'est que le compte n'est pas valide
-	// var_dump($resRequete);
-	// var_dump($_SESSION);
-	// Si il y a une résultat : connexion effectuée et on créé une session à l'utilisateur
-	if ($resRequete) {
-		$_SESSION["login"] = $resRequete["login"];
-		$_SESSION["statut"] = $resRequete["statut"];
-
-		// connexion OK -> retour True
-		$retour = true;
-	} else {
-
-		// connexion Pas Ok -> retour False
-		$retour = false;
-	}
-	return $retour;
+    // Vérification du statut de connexion
+    if (isset($etatConnexion['status']) && $etatConnexion['status'] === 'success') {
+        // Connexion réussie, création de la session
+        $_SESSION["login"] = $etatConnexion["user"]["login"];
+        $_SESSION["statut"] = $etatConnexion["user"]["statut"];
+        return true;
+    } else {
+        // Connexion échouée
+        return false;
+    }
 }
 
 //****************Génération des logs**************************************
@@ -83,31 +100,90 @@ function logsConnexion()
 }
 
 //****************Récupération du statut de l'utilisateur**************************************
-function getStatut($login)
+function getStatutAPI($login)
 {
-	include('connexionBDDAuth.php');
+    // URL de votre API pour récupérer les détails d'un compte
+    $url = "http://192.168.197.129:8080/comptes/" . urlencode($login);
 
-	$login = $BDDAuth->quote($login);
-	$requete = "SELECT statut FROM comptes WHERE login = $login  AND password = $pass ;";
-	$resultat = $BDDAuth->query($requete);
-	$resRequete = $resultat->fetch(PDO::FETCH_ASSOC);
-	if ($resRequete) {
-		$retour = $resRequete;
-	}
-	return $retour;
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
 }
 
+function getStatut($login)
+{
+    // Appel à la fonction getStatutAPI
+    $resultatAPI = getStatutAPI($login);
+
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        // Retour du statut du compte
+        return $resultatAPI['compte']['statut'];
+    } else {
+        // Gestion de l'erreur ou compte introuvable
+        return false;
+    }
+}
+
+
 //****************Récupération des différents fournisseurs**************************************
+function recupFournisseurAPI()
+{
+    // URL de votre API pour récupérer la liste des fournisseurs
+    $url = "http://192.168.197.129:8080/fournisseurs";
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function recupFournisseur()
 {
-	include('connexionBDD.php');
-	$requete = "SELECT NomFournisseur FROM Fournisseur ORDER BY NomFournisseur ASC;";
-	$resultat = $BDD->query($requete);
-	$resRequete = $resultat->fetchAll(PDO::FETCH_ASSOC);
-	if ($resRequete) {
-		$retour = $resRequete;
-	}
-	return $retour;
+    // Appel à la fonction recupFournisseurAPI
+    $resultatAPI = recupFournisseurAPI();
+
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        // Retour de la liste des fournisseurs
+        return $resultatAPI['fournisseurs'];
+    } else {
+        // Gestion de l'erreur ou liste vide
+        return false;
+    }
 }
 
 //****************Redirection des pages**************************************
@@ -148,209 +224,387 @@ function deniedAccess()
 
 
 //*******************************Récupération de toutes les données de matériel de la BDD*************************************************
+function listeMaterielAPI()
+{
+    // URL de votre API pour récupérer la liste du matériel
+    $url = "http://192.168.197.129:8080/materiels";
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function listeMateriel()
 {
+    // Appel à la fonction listeMaterielAPI
+    $resultatAPI = listeMaterielAPI();
 
-	$retour = false;
-	include('connexionBDD.php');
-
-	$requete = 'SELECT m.NoMateriel AS "Id", Type_mat AS "Type de matériel", Marque, Description, p.prix AS "Prix", Image, nomfournisseur AS "Vendu par" FROM Materiel AS m INNER JOIN Propose as P ON p.nomateriel = m.nomateriel INNER JOIN Fournisseur AS f ON f.nofournisseur = p.nofournisseur ORDER BY m.NoMateriel ASC;';
-	$resultat = $BDD->query($requete);
-	if ($resultat) {
-		$retour = $resultat->fetchAll(PDO::FETCH_ASSOC);
-	}
-
-	return $retour;
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        // Retour de la liste du matériel
+        return $resultatAPI['materiels'];
+    } else {
+        // Gestion de l'erreur ou liste vide
+        return false;
+    }
 }
 
 //****************Affichage d'un tableau**************************************
 function afficheTableau($tab)
 {
-	echo '<table>';
-	echo '<tr>'; // les entetes des colonnes qu'on lit dans le premier tableau par exemple
-	foreach ($tab[0] as $colonne => $valeur) {
-		echo "<th>$colonne</th>";
-	}
-	echo "</tr>\n";
-	// le corps de la table
-	foreach ($tab as $ligne) {
-		echo '<tr>';
-		foreach ($ligne as $entete => $cellule) {
-			if ($entete == "Image") {
-				echo '<td><img class="image_table" src="img/' . $cellule . '" alt="' . $cellule . '"/></td>';
-			} else if ($entete == "Prix") {
-				echo "<td>$cellule €</td>";
-			} else {
-				echo "<td>$cellule</td>";
-			}
-		}
-		echo "</tr>\n";
-	}
-	echo '</table>';
+    // Vérifier si $tab est un tableau non vide
+    if (is_array($tab) && count($tab) > 0) {
+        echo '<table>';
+        echo '<tr>'; // Les entêtes des colonnes
+
+        // Parcourir le premier élément pour obtenir les en-têtes de colonne
+        foreach ($tab[0] as $colonne => $valeur) {
+            echo "<th>$colonne</th>";
+        }
+        echo "</tr>\n";
+
+        // Le corps de la table
+        foreach ($tab as $ligne) {
+            echo '<tr>';
+            foreach ($ligne as $entete => $cellule) {
+                if ($entete == "Image") {
+                    echo '<td><img class="image_table" src="img/' . $cellule . '" alt="' . $cellule . '"/></td>';
+                } else if ($entete == "Prix") {
+                    echo "<td>$cellule €</td>";
+                } else {
+                    echo "<td>$cellule</td>";
+                }
+            }
+            echo "</tr>\n";
+        }
+        echo '</table>';
+    } else {
+        // Gérer le cas où $tab n'est pas un tableau ou est vide
+        echo "Aucune donnée à afficher.";
+    }
 }
 
 //*******************************Execution de l'insertion*************************************************
+function insertionAPI($type, $marque, $fournisseur, $description, $nom_image, $prix)
+{
+    $url = "http://192.168.197.129:8080/materiels";
+
+    // Préparation des données à envoyer
+    $data = array(
+        'type' => $type,
+        'marque' => $marque,
+        'fournisseur' => $fournisseur,
+        'description' => $description,
+        'nom_image' => $nom_image,
+        'prix' => $prix
+    );
+    $json_data = json_encode($data);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $json_data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function insertion($type, $marque, $fournisseur, $description, $nom_image, $prix)
 {
-	$retour = false;
-	include('connexionBDD.php');
-	// filtrer et protéger les paramètres	
-	// on protège également les paramètres issus d'une sélection car ils pourraient être issus d'une modification de la requête 
-	// via une interception (ex : BurpSuite)
-	$type = $BDD->quote($type);
-	$marque = $BDD->quote(htmlentities($marque, 0, "UTF-8"));
-	$fournisseur = $BDD->quote($fournisseur);
-	$description = $BDD->quote(htmlentities($description, 0, "UTF-8"));
-	$nom_image = $BDD->quote(htmlentities($nom_image, 0, "UTF-8"));
+    // Appel à la fonction insertionAPI
+    $resultatAPI = insertionAPI($type, $marque, $fournisseur, $description, $nom_image, $prix);
 
-	if (!alreadyExist($marque, $fournisseur, $description)) {
-		// requête
-		$requeteMateriel = "INSERT INTO Materiel(type_mat, marque, description, image) VALUES ($type, $marque, $description, $nom_image);";
-		$resultatMateriel = $BDD->exec($requeteMateriel);
-
-		// ajout du matériel associé à un fournisseur dans la table propose
-		$idFournisseur = getIdFournisseur($fournisseur);
-		$idMateriel = getIdMateriel($description);
-		$requetePropose = "INSERT INTO Propose VALUES($idMateriel, $idFournisseur, $prix)";
-		$resultatPropose = $BDD->exec($requetePropose);
-		// exec renvoie true (1) si qqchose a été modifié
-		// var_dump($resultatMateriel);
-		if ($resultatMateriel && $resultatPropose) {
-			$retour = 1;
-		}
-	}
-	return $retour;
+    // Vérification si l'insertion a réussi
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        return true;
+    } else {
+        return false;
+    }
 }
+
 
 //*******************************Récupération de l'Id du fournisseur à partir du nom*************************************************
+function getIdFournisseurAPI($fournisseur)
+{
+    $url = "http://192.168.197.129:8080/fournisseurs/" . urlencode($fournisseur);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function getIdFournisseur($fournisseur)
 {
-	include('connexionBDD.php');
-	// $fournisseur est déjà protégé car appelé uniquement depuis une fonction d'insertion/modification
-	// qui protège déjà le fournisseur
-	$requete = "SELECT NoFournisseur FROM Fournisseur WHERE NomFournisseur = $fournisseur";
-	$resultat = $BDD->query($requete);
-	if ($resultat) {
-		$retour = $resultat->fetch(PDO::FETCH_ASSOC);
-	}
+    // Appel à la fonction getIdFournisseurAPI
+    $resultatAPI = getIdFournisseurAPI($fournisseur);
 
-	return $retour["NoFournisseur"];
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        return $resultatAPI['id'];
+    } else {
+        return false;
+    }
 }
+
 
 //*******************************Récupération de l'id du matériel à partir de sa description*************************************************
+function getIdMaterielAPI($description)
+{
+    $url = "http://192.168.197.129:8080/materiels/" . urlencode($description);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function getIdMateriel($description)
 {
-	include('connexionBDD.php');
-	// On utilise la description car elle est différente pour toutes les valeurs	
-	$requete = "SELECT NoMateriel FROM Materiel WHERE Description = $description";
-	$resultat = $BDD->query($requete);
-	// echo '<p>'.var_dump($resultat).'</p>';
-	if ($resultat) {
-		$retour = $resultat->fetch(PDO::FETCH_ASSOC);
-	}
-	return $retour["NoMateriel"];
+    // Appel à la fonction getIdMaterielAPI
+    $resultatAPI = getIdMaterielAPI($description);
+
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        return $resultatAPI['id'];
+    } else {
+        return false;
+    }
 }
+
 
 //*******************************Récupération de tous les id du matériel*************************************************
-function listeIdMateriel()
+function listeIdMaterielAPI()
 {
-	include('connexionBDD.php');
-	$requete = "SELECT NoMateriel FROM Materiel";
-	$resultat = $BDD->query($requete);
-	if ($resultat) {
-		$retour = $resultat->fetchAll(PDO::FETCH_ASSOC);
-	}
-	return $retour;
+    $url = "http://192.168.197.129:8080/materiels/ids";
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
 }
 
+function listeIdMateriel()
+{
+    // Appel à la fonction listeIdMaterielAPI
+    $resultatAPI = listeIdMaterielAPI();
+
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        return $resultatAPI['ids'];
+    } else {
+        return false;
+    }
+}
+
+
 //*******************************Execution des modifications*************************************************
+function modificationAPI($type, $marque, $fournisseur, $description, $prix, $idMateriel)
+{
+    $url = "http://192.168.197.129:8080/materiels/" . $idMateriel;
+
+    // Préparation des données à envoyer
+    $data = array(
+        'type' => $type,
+        'marque' => $marque,
+        'fournisseur' => $fournisseur,
+        'description' => $description,
+        'prix' => $prix,
+        'id_materiel' => $idMateriel
+    );
+    $json_data = json_encode($data);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $json_data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function modification($type, $marque, $fournisseur, $description, $prix, $idMateriel)
 {
-	$retour = 0;
+    // Appel à la fonction modificationAPI
+    $resultatAPI = modificationAPI($type, $marque, $fournisseur, $description, $prix, $idMateriel);
 
-	include('connexionBDD.php');
-
-	// filtrer les paramètres
-	// on protège également les paramètres issus d'une sélection car ils pourraient être issus d'une modification de la requête 
-	// via une interception (ex : BurpSuite)
-	// htmlentities décode en ISO-8859-1 par défaut donc pose problème pour les accents
-	$type = $BDD->quote($type);
-	$marque = $BDD->quote(htmlentities($marque, 0, "UTF-8"));
-	$fournisseur = $BDD->quote($fournisseur);
-	$description = $BDD->quote(htmlentities($description, 0, "UTF-8"));
-	$idFournisseur = getIdFournisseur($fournisseur);
-
-
-	// requête pour la table matériel
-	/*
-	UPDATE Materiel 
-	SET 
-	type_mat = $type, 
-	marque = $marque, 
-	description = $description
-	WHERE NoMateriel = $idMateriel;
-	*/
-	$requeteMateriel = "UPDATE Materiel 
-	SET 
-	type_mat = $type, 
-	marque = $marque, 
-	description = $description
-	WHERE NoMateriel = $idMateriel;";
-	$resultatMateriel = $BDD->exec($requeteMateriel);
-
-	// modif du matériel associé à un fournisseur dans la table propose
-	/*
-	UPDATE Materiel 
-	SET 
-	NoMateriel = $idMateriel,
-	NoFournisseur = $idFournisseur,
-	Prix = $prix
-	WHERE NoMateriel = $idMateriel;
-	*/
-	$requetePropose = "UPDATE Propose 
-	SET 
-	NoMateriel = $idMateriel,
-	NoFournisseur = $idFournisseur,
-	Prix = $prix
-	WHERE NoMateriel = $idMateriel;";
-
-	$resultatPropose = $BDD->exec($requetePropose);
-
-	if ($resultatMateriel == false && $resultatPropose == false)
-		$retour = 0;
-	else
-		$retour = array($resultatMateriel, $resultatPropose);
-	return $retour;
+    // Vérification si la modification a été réussie
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 //*******************************Filtrage des produits par type*************************************************
+function listerProduitParTypeAPI($type_mat)
+{
+    $url = "http://192.168.197.129:8080/materiels/type/" . urlencode($type_mat);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function listerProduitParType($type_mat)
 {
-	$retour = false;
-	include('connexionBDD.php');
+    // Appel à la fonction listerProduitParTypeAPI
+    $resultatAPI = listerProduitParTypeAPI($type_mat);
 
-	$type_mat = $BDD->quote($type_mat);
-	$requete = 'SELECT m.NoMateriel AS "Id", Type_mat AS "Type de matériel", Marque, Description, p.prix AS "Prix", Image, nomfournisseur AS "Vendu par" FROM Materiel AS m INNER JOIN Propose as P ON p.nomateriel = m.nomateriel INNER JOIN Fournisseur AS f ON f.nofournisseur = p.nofournisseur WHERE type_mat = ' . $type_mat . ';';
-
-	$resultat = $BDD->query($requete);
-	if ($resultat) {
-		$retour = $resultat->fetchAll(PDO::FETCH_ASSOC);
-	}
-	return $retour;
+    // Vérification si le résultat est valide
+    if (isset($resultatAPI['status']) && $resultatAPI['status'] === 'success') {
+        return $resultatAPI['produits'];
+    } else {
+        return false;
+    }
 }
+
 
 //*******************************Vérifier l'unicité des tables*************************************************
+function alreadyExistAPI($marque, $fournisseur, $description)
+{
+    $url = "http://192.168.197.129:8080/materiels/exist?marque=" . urlencode($marque) . "&fournisseur=" . urlencode($fournisseur) . "&description=" . urlencode($description);
+
+    // Initialisation de cURL
+    $ch = curl_init($url);
+
+    // Configuration des options cURL
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+
+    // Exécution de la requête cURL
+    $result = curl_exec($ch);
+    if ($result === FALSE) {
+        die('Erreur lors de la requête vers l\'API : ' . curl_error($ch));
+    }
+
+    // Fermeture de la session cURL
+    curl_close($ch);
+
+    // Décodage de la réponse JSON
+    $json_result = json_decode($result, true);
+
+    return $json_result;
+}
+
 function alreadyExist($marque, $fournisseur, $description)
 {
-	$retour = false;
-	include('connexionBDD.php');
-	$requete = "SELECT * FROM Materiel AS m INNER JOIN Propose as P ON p.nomateriel = m.nomateriel INNER JOIN Fournisseur AS f ON f.nofournisseur = p.nofournisseur WHERE m.marque = $marque AND m.description = $description AND f.nomFournisseur = $fournisseur";
-	$resultat = $BDD->query($requete);
-	if ($resultat) {
-		$retour = $resultat->fetch(PDO::FETCH_ASSOC);
-	}
-	if ($retour) {
-		$retour = true;
-	}
-	return $retour;
+    // Appel à la fonction alreadyExistAPI
+    $resultatAPI = alreadyExistAPI($marque, $fournisseur, $description);
+
+    // Vérification si le produit existe déjà
+    return isset($resultatAPI['status']) && $resultatAPI['status'] === 'success' && $resultatAPI['exists'];
 }
+

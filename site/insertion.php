@@ -1,5 +1,7 @@
 <?php
-include('includes/header.php'); ?>
+include('includes/header.php'); 
+require_once 'includes/fonctions.php';
+?>
 
 <?php
 if ($_SESSION["statut"] == 'administrateur') {

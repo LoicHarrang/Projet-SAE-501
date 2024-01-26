@@ -4,7 +4,7 @@ include('includes/header.php');
 // Fonction pour se connecter à l'API en utilisant cURL avec JSON
 function connexionAPI($login, $password)
 {
-    $url = "http://192.168.197.128:8080/check_account";
+    $url = "http://192.168.197.129:8080/check_account";
     $data = array('username' => $login, 'password' => $password);
 
     // Encodage des données en JSON
