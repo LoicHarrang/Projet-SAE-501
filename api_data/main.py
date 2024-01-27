@@ -22,13 +22,18 @@ def get_db_conn_psql():
     return conn
 
 def getIdFournisseur(fournisseur_nom: str, db_conn):
-    with db_conn.cursor() as cursor:
+    with db_conn.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute("SELECT nofournisseur FROM Fournisseur WHERE nomfournisseur = %s", (fournisseur_nom,))
         result = cursor.fetchone()
-        # Assurez-vous que la clé utilisée ici correspond à celle de votre table dans la base de données
         return result['nofournisseur'] if result else None
-
     
+def getIdMateriel(description: str, db_conn):
+    with db_conn.cursor(cursor_factory=RealDictCursor) as cursor:  # db_conn doit être une connexion à la base de données
+        cursor.execute("SELECT nomateriel FROM Materiel WHERE description = %s", (description,))
+        result = cursor.fetchone()
+        return result['nomateriel'] if result else None
+    
+
 class Materiel(BaseModel):
     type: str
     marque: str
@@ -152,23 +157,32 @@ async def get_produits_par_type(type_mat: str, db_conn=Depends(get_db_conn_psql)
 # Route pour insérer un nouveau matériel
 @app.post("/materiels")
 async def ajouter_materiel(materiel: Materiel, db_conn=Depends(get_db_conn_psql)):
-    cursor = db_conn.cursor()
     try:
-        # Insérer le matériel
-        cursor.execute("INSERT INTO Materiel(type_mat, marque, description, image) VALUES (%s, %s, %s, %s)", 
-                       (materiel.type, materiel.marque, materiel.description, materiel.nom_image))
-        # Récupérer les identifiants
-        idFournisseur = getIdFournisseur(materiel.fournisseur, cursor)
-        idMateriel = getIdMateriel(materiel.description, cursor)
-        # Insérer dans la table Propose
-        cursor.execute("INSERT INTO Propose VALUES (%s, %s, %s)", (idMateriel, idFournisseur, materiel.prix))
-        db_conn.commit()
+        with db_conn.cursor() as cursor:
+            # Insérer le matériel
+            cursor.execute(
+                "INSERT INTO Materiel(type_mat, marque, description, image) VALUES (%s, %s, %s, %s)",
+                (materiel.type, materiel.marque, materiel.description, materiel.nom_image)
+            )
+
+            # Récupérer les identifiants
+            idFournisseur = getIdFournisseur(materiel.fournisseur, db_conn)
+            # Veuillez vous assurer que la fonction getIdFournisseur est définie de manière similaire à getIdMateriel
+            cursor.execute("SELECT currval(pg_get_serial_sequence('Materiel','nomateriel'))")  # Récupérer le dernier ID inséré
+            idMateriel = cursor.fetchone()[0]
+
+            # Insérer dans la table Propose si nécessaire, ajustez en fonction de votre schéma de base de données
+            cursor.execute(
+                "INSERT INTO Propose(nomateriel, nofournisseur, prix) VALUES (%s, %s, %s)",
+                (idMateriel, idFournisseur, materiel.prix)
+            )
+
+            db_conn.commit()
+
         return {"status": "success", "message": "Matériel ajouté avec succès"}
-    except mysql.connector.Error as e:
+    except Exception as e:  # Il est préférable d'utiliser une exception plus spécifique si possible
         db_conn.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Erreur lors de l'insertion du matériel : {e}")
-    finally:
-        cursor.close()
+        return {"status": "error", "message": f"Erreur lors de l'insertion du matériel : {e}"}
 
 @app.put("/materiels/{id_materiel}")
 async def update_materiel(id_materiel: int, materiel: MaterielUpdate, db_conn=Depends(get_db_conn_psql)):
