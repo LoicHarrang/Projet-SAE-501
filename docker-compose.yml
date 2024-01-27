@@ -1,12 +1,16 @@
 services:
   site:
     build:
-      context: ./
-      dockerfile: ./dockerfiles/dockerfile-site.dockerfile
+      context: .
+      dockerfile: dockerfiles/dockerfile-site.dockerfile
     ports:
-      - "80:80"
+      - "5000:5000"
     volumes:
-      - ./site:/var/www/html
+      - ./site:/app
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+    command: flask run --host=0.0.0.0
   api_auth:
     build:
       context: ./

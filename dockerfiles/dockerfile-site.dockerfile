@@ -1,13 +1,22 @@
-FROM php:8.2-apache
+# Utiliser une image de base Python officielle
+FROM python:3.9-slim
 
-COPY --chown=www-data:www-data  site /var/www/html/
+# Définir le répertoire de travail dans le conteneur
+WORKDIR /app
 
-RUN apt-get update; \
-    apt-get install -y libpq5 libpq-dev; \
-    docker-php-ext-install pdo pdo_pgsql; \
-    apt-get autoremove --purge -y libpq-dev; \
-    apt-get clean ; \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
+# Copier le fichier de dépendances et installer les dépendances
+COPY ./site/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN docker-php-ext-install pdo_mysql
+# Copier le reste des fichiers de l'application dans le conteneur
+COPY ./site /app
 
+# Exposer le port sur lequel l'application Flask s'exécutera
+EXPOSE 5000
+
+# Définir la variable d'environnement pour Flask
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+
+# Lancer l'application Flask lors du démarrage du conteneur
+CMD ["flask", "run", "--host=0.0.0.0"]
