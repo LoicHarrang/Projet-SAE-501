@@ -1,22 +1,14 @@
-# Utiliser une image de base Python officielle
-FROM python:3.9-slim
+# Utiliser l'image officielle PHP avec Apache
+FROM php:8.0-apache
 
-# Définir le répertoire de travail dans le conteneur
-WORKDIR /app
+# Installer les extensions PHP nécessaires
+RUN docker-php-ext-install pdo pdo_mysql
 
-# Copier le fichier de dépendances et installer les dépendances
-COPY ./site/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Activer le mod_rewrite pour Apache
+RUN a2enmod rewrite
 
-# Copier le reste des fichiers de l'application dans le conteneur
-COPY ./site /app
+# Copier les fichiers source de l'application dans le conteneur
+COPY ./site /var/www/html/
 
-# Exposer le port sur lequel l'application Flask s'exécutera
-EXPOSE 5000
-
-# Définir la variable d'environnement pour Flask
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=development
-
-# Lancer l'application Flask lors du démarrage du conteneur
-CMD ["flask", "run", "--host=0.0.0.0"]
+# Exposer le port 80
+EXPOSE 80

@@ -4,13 +4,9 @@ services:
       context: .
       dockerfile: dockerfiles/dockerfile-site.dockerfile
     ports:
-      - "5000:5000"
+      - "80:80"
     volumes:
       - ./site:/app
-    environment:
-      - FLASK_APP=app.py
-      - FLASK_ENV=development
-    command: flask run --host=0.0.0.0
   api_auth:
     build:
       context: ./

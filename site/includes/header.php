@@ -3,7 +3,7 @@
 	  include('includes/formulaires.php')?>
 <?php 
 // Appelle de la fonction redirection pour toutes les pages (si l'utilisateur n'est pas autorisé, il sera redirigé pour toutes les pages du site)
-redirect(); ?>
+//redirect(); ?>
 <!DOCTYPE html>
 <html lang="fr">
 
