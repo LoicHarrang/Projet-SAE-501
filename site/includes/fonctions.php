@@ -233,8 +233,7 @@ function getIdFournisseur($fournisseur)
 	if ($resultat) {
 		$retour = $resultat->fetch(PDO::FETCH_ASSOC);
 	}
-
-	return $retour["NoFournisseur"];
+	return $retour["nofournisseur"];
 }
 
 //*******************************Récupération de l'id du matériel à partir de sa description*************************************************
@@ -248,7 +247,7 @@ function getIdMateriel($description)
 	if ($resultat) {
 		$retour = $resultat->fetch(PDO::FETCH_ASSOC);
 	}
-	return $retour["NoMateriel"];
+	return $retour["nomateriel"];
 }
 
 //*******************************Récupération de tous les id du matériel*************************************************

@@ -20,7 +20,6 @@ if ($_SESSION["statut"] == 'administrateur') {
                 </h2>
                     <?php
                     afficheFormulaireInsertion();
-                    if (isset($_POST['captcha']) &&  $_POST['captcha'] == $_SESSION['code']) {
 
                         if (
                             !empty($_SESSION)
@@ -48,7 +47,7 @@ if ($_SESSION["statut"] == 'administrateur') {
                             </p>
                     <?php
                             afficheTableau(listeMateriel());
-                        }
+                        
                     } else if (isset($_POST['captcha']) &&  $_POST['captcha'] != $_SESSION['code']) {
                         echo '<p>Captcha incorrect, veuillez recommencer</p>';
                     }
