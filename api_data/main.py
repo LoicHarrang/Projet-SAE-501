@@ -168,8 +168,7 @@ async def ajouter_materiel(materiel: Materiel, db_conn=Depends(get_db_conn_psql)
             # Récupérer les identifiants
             idFournisseur = getIdFournisseur(materiel.fournisseur, db_conn)
             # Veuillez vous assurer que la fonction getIdFournisseur est définie de manière similaire à getIdMateriel
-            cursor.execute("SELECT currval(pg_get_serial_sequence('Materiel','nomateriel'))")  # Récupérer le dernier ID inséré
-            idMateriel = cursor.fetchone()[0]
+            idMateriel = getIdMateriel(materiel.description, db_conn)
 
             # Insérer dans la table Propose si nécessaire, ajustez en fonction de votre schéma de base de données
             cursor.execute(
