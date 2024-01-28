@@ -22,11 +22,16 @@ def get_db_conn_psql():
     return conn
 
 def getIdFournisseur(fournisseur_nom: str, db_conn):
-    with db_conn.cursor() as cursor:
+    with db_conn.cursor() as cursor:  # db_conn est maintenant une connexion de base de données
         cursor.execute("SELECT nofournisseur FROM Fournisseur WHERE nomfournisseur = %s", (fournisseur_nom,))
         result = cursor.fetchone()
-        # Assurez-vous que la clé utilisée ici correspond à celle de votre table dans la base de données
         return result['nofournisseur'] if result else None
+
+def getIdMateriel(description: str, db_conn):
+    with db_conn.cursor() as cursor:
+        cursor.execute("SELECT NoMateriel FROM Materiel WHERE Description = %s", (description,))
+        result = cursor.fetchone()
+        return result['nomateriel'] if result else None
 
     
 class Materiel(BaseModel):
@@ -155,11 +160,10 @@ async def ajouter_materiel(materiel: Materiel, db_conn=Depends(get_db_conn_psql)
     cursor = db_conn.cursor()
     try:
         # Insérer le matériel
-        cursor.execute("INSERT INTO Materiel(type_mat, marque, description, image) VALUES (%s, %s, %s, %s)", 
-                       (materiel.type, materiel.marque, materiel.description, materiel.nom_image))
+        cursor.execute("INSERT INTO Materiel(type_mat, marque, description, image) VALUES (%s, %s, %s, %s)", (materiel.type, materiel.marque, materiel.description, materiel.nom_image))
         # Récupérer les identifiants
-        idFournisseur = getIdFournisseur(materiel.fournisseur, cursor)
-        idMateriel = getIdMateriel(materiel.description, cursor)
+        idFournisseur = getIdFournisseur(materiel.fournisseur, db_conn)  # db_conn est la connexion de base de données
+        idMateriel = getIdMateriel(materiel.description, db_conn)
         # Insérer dans la table Propose
         cursor.execute("INSERT INTO Propose VALUES (%s, %s, %s)", (idMateriel, idFournisseur, materiel.prix))
         db_conn.commit()
