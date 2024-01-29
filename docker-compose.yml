@@ -1,37 +1,41 @@
 services:
   site:
-    build:
-      context: ./
-      dockerfile: ./dockerfiles/dockerfile-site.dockerfile
+    build: # Construit l'image du site web à partir d'un Dockerfile spécifique.
+      context: ./ # Indique le répertoire contenant le Dockerfile.
+      dockerfile: ./dockerfiles/dockerfile-site.dockerfile # Chemin du Dockerfile.
     ports:
-      - "80:80"
+      - "80:80" # Expose le port 80 du conteneur sur le port 80 de l'hôte, standard pour le trafic HTTP.
     volumes:
-      - ./site:/var/www/html
+      - ./site:/var/www/html # Montage en volume du code source du site dans le conteneur pour le développement.
+
   api_auth:
-    build:
+    build: # Construit l'image de l'API d'authentification à partir d'un Dockerfile spécifique.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-api-auth.dockerfile
     ports:
-      - "8080:8080"
+      - "8080:8080" # Expose le port 8080 du conteneur sur le port 8080 de l'hôte.
     volumes:
-      - ./api_auth/:/code/app
+      - ./api_auth/:/code/app # Montage en volume du code source de l'API d'authentification.
+
   api_data:
-    build:
+    build: # Construit l'image de l'API de données à partir d'un Dockerfile spécifique.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-api-data.dockerfile
     ports:
-      - "8081:8081"
+      - "8081:8081" # Expose le port 8081 du conteneur sur le port 8081 de l'hôte.
     volumes:
-      - ./api_data/:/code/app
+      - ./api_data/:/code/app # Montage en volume du code source de l'API de données.
+
   psql:
-    build:
+    build: # Construit l'image du service PostgreSQL.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-psql.dockerfile
     ports:
-      - "5432:5432"
+      - "5432:5432" # Expose le port standard PostgreSQL (5432) pour permettre les connexions.
+
   mariadb:
-    build:
+    build: # Construit l'image du service MariaDB.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-mariadb.dockerfile
     ports:
-      - "3306:3306"
+      - "3306:3306" # Expose le port standard MariaDB/MySQL (3306) pour permettre les connexions.
