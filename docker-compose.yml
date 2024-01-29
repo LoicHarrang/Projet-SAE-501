@@ -1,37 +1,41 @@
 services:
   site:
-    build:
-      context: ./
-      dockerfile: ./dockerfiles/dockerfile-site.dockerfile
+    build: # Construit l'image du service 'site' à partir d'un Dockerfile spécifique.
+      context: ./ # Répertoire de contexte pour la construction de l'image.
+      dockerfile: ./dockerfiles/dockerfile-site.dockerfile # Chemin vers le Dockerfile.
     ports:
-      - "80:80"
+      - "80:80" # Redirige le port 80 du conteneur vers le port 80 de l'hôte.
     volumes:
-      - ./site:/var/www/html
+      - ./site:/var/www/html # Montage du dossier local 'site' dans '/var/www/html' dans le conteneur.
+
   api_auth:
-    build:
+    build: # Construit l'image du service 'api_auth' à partir d'un Dockerfile spécifique.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-api-auth.dockerfile
     ports:
-      - "8080:8080"
+      - "8080:8080" # Redirige le port 8080 du conteneur vers le port 8080 de l'hôte.
     volumes:
-      - ./api_auth/:/code/app
+      - ./api_auth/:/code/app # Montage du dossier 'api_auth' dans '/code/app' dans le conteneur.
+
   api_data:
-    build:
+    build: # Construit l'image du service 'api_data' à partir d'un Dockerfile spécifique.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-api-data.dockerfile
     ports:
-      - "8081:8081"
+      - "8081:8081" # Redirige le port 8081 du conteneur vers le port 8081 de l'hôte.
     volumes:
-      - ./api_data/:/code/app
+      - ./api_data/:/code/app # Montage du dossier 'api_data' dans '/code/app' dans le conteneur.
+
   psql:
-    build:
+    build: # Construit l'image du service PostgreSQL à partir d'un Dockerfile spécifique.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-psql.dockerfile
     ports:
-      - "5432:5432"
+      - "5432:5432" # Redirige le port 5432 du conteneur vers le port 5432 de l'hôte, standard pour PostgreSQL.
+
   mariadb:
-    build:
+    build: # Construit l'image du service MariaDB à partir d'un Dockerfile spécifique.
       context: ./
       dockerfile: ./dockerfiles/dockerfile-mariadb.dockerfile
     ports:
-      - "3306:3306"
+      - "3306:3306" # Redirige le port 3306 du conteneur vers le port 3306 de l'hôte, standard pour MariaDB.
